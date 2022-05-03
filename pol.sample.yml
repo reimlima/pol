@@ -1,0 +1,4 @@
+---
+pushover_api: "api.pushover.net:443"
+pushover_token: ""
+pushover_user: ""

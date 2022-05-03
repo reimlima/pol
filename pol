@@ -1,0 +1,118 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Proof of Life - Simple connection test from given equipment
+                which send notification via Pushover in case of failure.
+
+"""
+import os
+import sys
+import http.client
+import urllib
+import argparse
+import socket
+import logging
+import time
+from systemd.journal import JournaldLogHandler
+import daemon
+import daemon.pidfile
+import yaml
+
+SCRIPT_NAME = os.path.basename(sys.argv[0])
+PORT_LIST = []
+
+# Dealing with command line options
+PARSER = argparse.ArgumentParser()
+
+PARSER.add_argument(
+    '-c',
+    '--config',
+    help='Config file path')
+
+PARSER.add_argument(
+    '-e',
+    '--equipment',
+    help='Equipment to be monitored')
+
+PARSER.add_argument(
+    '-p',
+    '--ports',
+    help='Port list, space separated',
+    nargs='+')
+
+ARGS = PARSER.parse_args()
+if len(sys.argv) == 1:
+    PARSER.print_help()
+    sys.exit(1)
+
+CONFIG_FILE = ARGS.config
+PORT_LIST = ARGS.ports
+TARGET = ARGS.equipment
+
+# Loggin to Journalctl
+LOGGER = logging.getLogger(SCRIPT_NAME)
+JOURNALDHANDLER = JournaldLogHandler()
+JOURNALDHANDLER.setFormatter(logging.Formatter('[%(levelname)s] %(message)s'))
+LOGGER.addHandler(JOURNALDHANDLER)
+LOGGER.setLevel(logging.INFO)
+
+# Handle with config file
+try:
+    CONFIG = yaml.full_load(open(CONFIG_FILE))
+    PUSHOVER_API = CONFIG['pushover_api']
+    PUSHOVER_TOKEN = CONFIG['pushover_token']
+    PUSHOVER_USER = CONFIG['pushover_user']
+
+except OSError as exit_error:
+    LOGGER.error("no configuration file found: %s", exit_error.strerror)
+    sys.exit(1)
+
+def proof_of_life():
+    '''
+    Main Program
+    '''
+    print("Caiu aqui")
+    while True:
+        # Starting Verification
+        socket.setdefaulttimeout(5)
+        reachability_test = socket.gethostbyaddr(TARGET)
+        if reachability_test:
+            for i in PORT_LIST:
+                socket_test = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                location = (TARGET, int(i))
+                result_of_check = socket_test.connect_ex(location)
+                socket_test.close()
+                if result_of_check == 0:
+                    message = "host: {}, port: {}, status: UP".format(TARGET, i)
+                else:
+                    message = "host: {}, port: {}, status: DOWN".format(TARGET, i)
+        else:
+            message = "host: {}, status: DOWN".format(TARGET)
+
+        # Sending result to Pushover
+        conn = http.client.HTTPSConnection(PUSHOVER_API)
+        conn.request("POST", "/1/messages.json",
+                     urllib.parse.urlencode({
+                         "token": PUSHOVER_TOKEN,
+                         "user": PUSHOVER_USER,
+                         "message": message,
+                     }), {"Content-type": "application/x-www-form-urlencoded"})
+        response = conn.getresponse()
+        if response.status == 200:
+            LOGGER.info("Notification sent: %s", response.reason)
+        else:
+            LOGGER.error("Unable to send notification, reason: %s", response.reason)
+        conn.close()
+        time.sleep(300)
+
+
+def run():
+    '''
+    Daemon start function
+    '''
+    with daemon.DaemonContext():
+        proof_of_life()
+
+
+if __name__ == "__main__":
+    run()

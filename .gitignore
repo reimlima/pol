@@ -127,3 +127,10 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Standard Version
+.versionrc.json
+package.json
+
+# My Local Settings
+pol.yml
