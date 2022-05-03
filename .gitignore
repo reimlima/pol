@@ -130,7 +130,7 @@ dmypy.json
 
 # Standard Version
 .versionrc.json
-package.json
+#package.json
 
 # My Local Settings
 pol.yml

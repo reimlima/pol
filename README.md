@@ -39,7 +39,11 @@ You have to fill these fields in the [YAML] config file before your first run:
 
 ### Systemd
 
+Rename the file `pol.sample.service` to `pol.service`, change informations from command-line options and follow the steps to configure the script to run like a [systemd] service.
 
+### Docker
+
+Soon. 
 
 ## Command-line Options
 
@@ -72,4 +76,5 @@ See LICENSE file
 [python-version]: https://www.python.org/downloads/release/python-375/
 [pylint-score]: https://mperlet.github.io/pybadge/badges/10.00.svg
 [Reinaldo Lima]: https://github.com/reimlima
+[systemd]: https://wiki.debian.org/systemd/Services
 [YAML]: https://en.wikipedia.org/wiki/YAML
