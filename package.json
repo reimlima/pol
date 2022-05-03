@@ -1,6 +1,5 @@
 {
     "name": "pol",
-    "version": "0.0.1",
     "scripts": {
         "release": "standard-version",
         "release:minor": "standard-version --release-as minor",
