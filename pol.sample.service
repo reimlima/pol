@@ -1,0 +1,14 @@
+[Unit]
+Description=Open Weather Exporter
+Wants=network.target network-online.target
+After=network.target network-online.target
+
+[Service]
+User=plastico
+Restart=always
+ExecStart=/home/plastico/pol/pol \
+	--config /path/to/config/pol.yml \
+	--equipment 127.0.0.1 \
+	--ports 80 443
+[Install]
+WantedBy=default.target
