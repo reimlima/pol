@@ -67,42 +67,46 @@ except OSError as exit_error:
     LOGGER.error("no configuration file found: %s", exit_error.strerror)
     sys.exit(1)
 
+def send_to_pushover(msg):
+    '''
+    Sending result to Pushover
+    '''
+    message = msg
+    conn = http.client.HTTPSConnection(PUSHOVER_API)
+    conn.request("POST", "/1/messages.json",
+                 urllib.parse.urlencode({
+                     "token": PUSHOVER_TOKEN,
+                     "user": PUSHOVER_USER,
+                     "message": message,
+                 }), {"Content-type": "application/x-www-form-urlencoded"})
+    response = conn.getresponse()
+    if response.status == 200:
+        LOGGER.info("Notification sent: %s", response.reason)
+    else:
+        LOGGER.error("Unable to send notification, reason: %s", response.reason)
+    conn.close()
+
 def proof_of_life():
     '''
     Main Program
     '''
-    print("Caiu aqui")
     while True:
         # Starting Verification
         socket.setdefaulttimeout(5)
         reachability_test = socket.gethostbyaddr(TARGET)
         if reachability_test:
             for i in PORT_LIST:
+                LOGGER.info("Port to check %s", str(i))
                 socket_test = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 location = (TARGET, int(i))
                 result_of_check = socket_test.connect_ex(location)
                 socket_test.close()
-                if result_of_check == 0:
-                    message = "host: {}, port: {}, status: UP".format(TARGET, i)
-                else:
+                if result_of_check != 0:
                     message = "host: {}, port: {}, status: DOWN".format(TARGET, i)
+                    send_to_pushover(message)
         else:
             message = "host: {}, status: DOWN".format(TARGET)
-
-        # Sending result to Pushover
-        conn = http.client.HTTPSConnection(PUSHOVER_API)
-        conn.request("POST", "/1/messages.json",
-                     urllib.parse.urlencode({
-                         "token": PUSHOVER_TOKEN,
-                         "user": PUSHOVER_USER,
-                         "message": message,
-                     }), {"Content-type": "application/x-www-form-urlencoded"})
-        response = conn.getresponse()
-        if response.status == 200:
-            LOGGER.info("Notification sent: %s", response.reason)
-        else:
-            LOGGER.error("Unable to send notification, reason: %s", response.reason)
-        conn.close()
+            send_to_pushover(message)
         time.sleep(300)
 
 
